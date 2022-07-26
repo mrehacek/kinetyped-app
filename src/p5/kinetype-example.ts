@@ -1,9 +1,9 @@
 import p5 from "p5";
 import opentype from "opentype.js";
 import { interpolate_glyphs } from "./common/kinetype";
-import { KT_SketchClosure, KT_SketchDataClosure, _KT_DataDraw, _KT_DataSetup, _KT_P5 } from "../types";
+import { KT_SketchClosure, KT_SketchDataClosure, KT_DataDraw, KT_DataSetup, KT_P5 } from "../types";
 
-export interface KT_DataSetup extends _KT_DataSetup {
+export interface KT_DataSetup_Example extends KT_DataSetup {
   canvasWidth: number;
   canvasHeight: number;
   useWebGL: boolean;
@@ -16,7 +16,7 @@ export interface KT_DataSetup extends _KT_DataSetup {
   backgroundColor: string;
 }
 
-export interface KT_DataDraw extends _KT_DataDraw {
+export interface KT_DataDraw_Example extends KT_DataDraw {
   debugVisualization: boolean;
   debugControlPoints: boolean;
   connectGlyphPointsToMousePos: boolean;
@@ -49,12 +49,14 @@ export enum KT_DrawingMethod {
   WEBGL_SHAPES = "webgl_shapes",
 }
 
-export interface KT_P5 extends _KT_P5{
+export interface KT_P5_Example extends KT_P5 {
   removeAll: () => void;
 }
 
-const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup, data_draw: KT_DataDraw) => {
-  const sketch : KT_SketchClosure = async (p: KT_P5) => {
+// @ts-expect-error
+const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Example, data_draw: KT_DataDraw_Example) => {
+  // @ts-expect-error
+  const sketch : KT_SketchClosure = async (p: KT_P5_Example) => {
     let font: opentype.Font;
     let current_fontPath: string; // remember to avoid reloading when reset() is called
     let glyphs: opentype.Path[];
@@ -75,6 +77,7 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup, data_
       font = await opentype.load(data_setup.fontPath);
       current_fontPath = data_setup.fontPath;
     }
+    
     async function generate_glyphs_and_resize() {
       const text_width = font.getAdvanceWidth(data_setup.text, data_setup.fontSize);
       data_setup.canvasWidth = text_width + 250 * p.map(text_width, 0, 500, 0.01, 1);
@@ -171,6 +174,7 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup, data_
 
       // Frame fadeout - cleaning
       // tried using tint(100, x) to make frames transparent, however it is very performance-heavy and unusable
+      // @ts-expect-error
       buf_main.clear();
       buf_main.background(data_setup.backgroundColor);
       if (data_draw.frameFadeoutStrength == 1) {
@@ -266,11 +270,9 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup, data_
         p.beginShape(shapeType);
       }
       
-      let last_point = null;
+      /* let last_point = null;
       let first_point = points[0];
-
-      let noise_multiplier = 2.5;
-
+      let noise_multiplier = 2.5; */
       for (const v of points) {
         // TODO: attemp to fix jumps when starting to draw another shape
         // ideas: 1. make a 3D array, separate by M command, and then draw each shape separately
@@ -296,7 +298,7 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup, data_
         } else {
           p.vertex(v.x, v.y);
         }
-        last_point = v;
+        //last_point = v;
       }
       p.endShape(p.CLOSE);
     }
@@ -373,12 +375,14 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup, data_
     }
 
     function resetNoiseDisplacement(points: p5.Vector[]) {
+      if (!noises || !noises.get(0)) return;
+      
       let i = 0;
-
       for (const v of points) {
-        if (!noises.get(i)) return;
-        v.x -= noises.get(i).x * data_draw.noise.strength;
-        v.y -= noises.get(i).y * data_draw.noise.strength;
+        const n = noises.get(i);
+        if (n?.x === undefined || n?.y === undefined) return;
+        v.x -= n.x * data_draw.noise.strength;
+        v.y -= n.y * data_draw.noise.strength;
         noises.set(i, null);
         i++;
       }

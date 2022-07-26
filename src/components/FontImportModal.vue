@@ -80,7 +80,7 @@ const tableColumns = [
 async function loadFontList() {
   console.log("Loading google fonts list");
   const { isFetching, error, data } = await useFetch(
-    "https://webfonts.googleapis.com/v1/webfonts?sort=POPULARITY&key=AIzaSyDHG2TBV7XtAHGMz20nWfjmZHlDwjv9cnw"
+    "https://webfonts.googleapis.com/v1/webfonts?sort=POPULARITY&key=AIzaSyBhZ-Q0zQehEoGR5JmA0mKTYNkMJrCSDVs"
   )
     .get()
     .json();

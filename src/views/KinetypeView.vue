@@ -201,6 +201,7 @@
     <n-layout>
       <n-layout-header embedded content-style="padding: 24px;">
         <n-card title="Current working design" size="small" embedded :bordered="false">
+          <template #header> <h4 style="margin: 0">Current working design</h4></template>
           <template #header-extra>
             <n-space>
               <n-input
@@ -228,12 +229,16 @@
       <!-- Gallery -->
       <n-layout-content style="padding: 1rem">
         <n-space style="margin-top: 1rem; margin-bottom: 1rem" justify="space-between">
-          <h4>Saved designs</h4>
-          <n-button v-if="saved_designs.length" @click="removeAllSavedDesigns">Remove all</n-button>
+          <h4 style="margin: 0; margin-right: 1rem">Saved designs</h4>
+          <n-space style="display: flex; align-items: center">
+            <label>Hide defaults</label><n-switch v-model:value="hideDefaultDesigns" size="medium" />
+            <n-button v-if="saved_designs.length" @click="removeAllSavedDesigns" style="position: relative; bottom: 0.25rem">Remove all</n-button>
+          </n-space>
         </n-space>
         <n-space>
+          <div v-if="hideDefaultDesigns && saved_designs.length === 0">None saved.</div>
           <n-card
-            v-for="d in default_designs.concat(saved_designs)"
+            v-for="d in hideDefaultDesigns ? saved_designs : default_designs.concat(saved_designs)"
             :key="d.id"
             :title="d.name"
             :closable="!d?.default"
@@ -263,7 +268,7 @@ import { useLocalStorage, watchDebounced } from "@vueuse/core";
 
 import s_kinetype_example from "../p5/kinetype-example";
 import { KT_DrawingMethod } from "../p5/kinetype-example";
-import type { KT_P5, KT_DataDraw, KT_DataSetup } from "../p5/kinetype-example";
+import type { KT_P5_Example, KT_DataDraw_Example, KT_DataSetup_Example } from "../p5/kinetype-example";
 import type { KT_Font } from "../components/FontImportModal.vue";
 import default_designs_definitions from "../p5/default-designs.js";
 import type { KT_SavedDesign, KT_SavedDesign_LocalStorage } from "../types";
@@ -275,7 +280,7 @@ import default_fonts from "../p5/default-fonts";
 const { p5_bind_sketch, p5_bind_data, p5_get_canvas_image } = useP5Helpers();
 
 const sketch_id = "working_sketch";
-const sketch_data_setup = reactive<KT_DataSetup>({
+const sketch_data_setup = reactive<KT_DataSetup_Example>({
   canvasWidth: 900,
   canvasHeight: 450,
   interpolationResolution: 10,
@@ -287,7 +292,7 @@ const sketch_data_setup = reactive<KT_DataSetup>({
   useWebGL: false,
   backgroundColor: "hsl(0, 0%, 0%)", // because clear only happens on setup
 });
-const sketch_data_draw = reactive<KT_DataDraw>({
+const sketch_data_draw = reactive<KT_DataDraw_Example>({
   debugVisualization: false,
   debugControlPoints: true,
   connectGlyphPointsToMousePos: false,
@@ -314,10 +319,11 @@ const sketch_data_draw = reactive<KT_DataDraw>({
   },
 });
 
-let s_instance: KT_P5 | null = null;
+let s_instance: KT_P5_Example | null = null;
 let s_reactive: any = null;
 let freezeSketch = ref(false);
 let fontImportModalOpen = ref(false);
+let hideDefaultDesigns = ref(false);
 
 const fontOptions = ref(default_fonts);
 
@@ -341,6 +347,7 @@ const PREVIEW_DOWNSCALE_FACTOR = 3.5;
 
 onMounted(async () => {
   s_reactive = p5_bind_data(s_kinetype_example, sketch_data_setup, sketch_data_draw);
+  // @ts-expect-error
   s_instance = await p5_bind_sketch(s_reactive, sketch_id);
 
   watchDebounced(
@@ -376,6 +383,7 @@ onMounted(async () => {
     });
   });
 
+  // @ts-expect-error
   default_designs.value = default_designs_definitions;
 });
 
@@ -435,11 +443,13 @@ function loadSavedDesign(d: KT_SavedDesign) {
         console.log(`${key}=${val} new val: ${sketch_data_setup[key]}`);
         break;
       default:
+        // @ts-expect-error
         sketch_data_setup[key] = val;
         break;
     }
   }
   for (const [key, val] of Object.entries(d.data_draw)) {
+    // @ts-expect-error
     sketch_data_draw[key] = val;
   }
 }

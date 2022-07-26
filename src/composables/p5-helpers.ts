@@ -1,5 +1,5 @@
 import p5 from "p5";
-import type { SketchDataClosure, SketchClosure } from "../types";
+import type { KT_SketchDataClosure, KT_SketchClosure, KT_DataSetup, KT_DataDraw } from "../types";
 
 // TODO: fix typing, there's error as it's unchecked later on
 
@@ -10,7 +10,7 @@ export function useP5Helpers() {
    * @param elementId HTML element id where p5 creates the canvas
    * @returns instance of the p5 sketch
    */
-  async function p5_bind_sketch(sketch: SketchClosure, elementId : string) : Promise<p5> {
+  async function p5_bind_sketch(sketch: KT_SketchDataClosure, elementId : string) : Promise<p5> {
     try {
       const canvas = document.getElementById(elementId);
       if (!canvas) {
@@ -29,7 +29,7 @@ export function useP5Helpers() {
    * @param draw_data data to be used in draw
    * @returns closure with p5 sketch
    */
-  function p5_bind_data(sketch_closure : SketchDataClosure, setup_data : Object, draw_data: Object) : any {
+  function p5_bind_data(sketch_closure : KT_SketchDataClosure, setup_data : KT_DataSetup, draw_data: KT_DataDraw) : any {
     return sketch_closure(setup_data, draw_data);
   }
 

@@ -64,6 +64,7 @@ function interpolate_glyphs(
   let glyph_points: p5.Vector[] = [];
   let glyph_points_separated: p5.Vector[][] = [];
   let pos = { x: 0, y: 0 };
+  // @ts-expect-error
   vis_buf.clear();
 
   for (const glyph of glyphs) {

@@ -13,10 +13,10 @@
 <script setup lang="ts">
 import { reactive, onMounted } from "vue";
 import { watchDebounced } from "@vueuse/core";
+import { useP5Helpers } from "../composables/p5-helpers";
+import { KT_P5 } from "../types";
+import s_template from "../p5/template";
 
-import sketch_fn from "../p5/shader-test.ts";
-import type p5_Extended from "../p5/shader-test.ts";
-import { useP5Helpers } from "../composables/p5-helpers.ts";
 const { p5_bind_sketch, p5_bind_data } = useP5Helpers();
 
 const sketch_id = "sketch-shader-test";
@@ -28,10 +28,12 @@ const sketch_data_setup = reactive({
 
 const sketch_data_draw = reactive({});
 
-let s_instance: p5_Extended | null = null;
+let s_instance: KT_P5 | null = null;
 
 onMounted(async () => {
-  const s_reactive = p5_bind_data(sketch_fn, sketch_data_setup, sketch_data_draw);
+  // @ts-expect-error
+  const s_reactive = p5_bind_data(s_template, sketch_data_setup, sketch_data_draw);
+  // @ts-expect-error
   s_instance = await p5_bind_sketch(s_reactive, sketch_id);
 
   watchDebounced(

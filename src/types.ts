@@ -31,8 +31,9 @@ export interface KT_SavedDesign {
 export interface KT_SavedDesign_LocalStorage {
   id: string;
   name: string;
-  data_setup: KT_DataSetup;
-  data_draw: KT_DataDraw;
+  default?: boolean;
+  data_setup: any;
+  data_draw: any;
   width: number;
   height: number;
   preview_image: string;
