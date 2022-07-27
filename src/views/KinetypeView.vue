@@ -331,10 +331,12 @@ function addFonts(fonts: KT_Font[]): void {
   fontImportModalOpen.value = false;
   for (const f of fonts) {
     for (const [weight, file] of Object.entries(f.files)) {
-      fontOptions.value.push({
+      const https_file = file.replace(/^http\:/, "https:");
+      const new_font = {
         label: f.family + ` (${weight})`,
-        value: file,
-      });
+        value: https_file,
+      };
+      fontOptions.value.push(new_font);
     }
   }
 }

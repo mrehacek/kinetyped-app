@@ -55,7 +55,6 @@ const emit = defineEmits<{
 }>();
 
 const google_fonts = ref([]);
-const loaded = ref(false);
 const checkedRowKeys = ref([]);
 const tableData = ref<KT_Font[]>([]);
 const tableColumns = [
