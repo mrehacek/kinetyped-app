@@ -1,6 +1,10 @@
 import p5 from "p5";
 import opentype from "opentype.js";
-import { Vec2D } from "./types";
+
+export type Vec2D = {
+  x: number;
+  y: number;
+};
 
 // TODO: constant rate interpolation for curves 
 

@@ -1,6 +1,6 @@
 import p5 from "p5";
 import opentype from "opentype.js";
-import { interpolate_glyphs } from "./common/kinetype";
+import { interpolate_glyphs } from "../libs/kinetyped";
 import { KT_SketchClosure, KT_SketchDataClosure, KT_DataDraw, KT_DataSetup, KT_P5 } from "../types";
 
 export interface KT_DataSetup_Example extends KT_DataSetup {
