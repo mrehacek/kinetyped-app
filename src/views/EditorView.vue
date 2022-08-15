@@ -232,7 +232,12 @@
           <h4 style="margin: 0; margin-right: 1rem">Saved designs</h4>
           <n-space style="display: flex; align-items: center">
             <label>Hide defaults</label><n-switch v-model:value="hideDefaultDesigns" size="medium" />
-            <n-button v-if="saved_designs.length" @click="removeAllSavedDesigns" style="position: relative; bottom: 0.25rem">Remove all</n-button>
+            <n-button
+              v-if="saved_designs.length"
+              @click="removeAllSavedDesigns"
+              style="position: relative; bottom: 0.25rem"
+              >Remove all</n-button
+            >
           </n-space>
         </n-space>
         <n-space>
@@ -272,12 +277,15 @@ import type { KT_P5_Example, KT_DataDraw_Noise, KT_DataSetup_Noise } from "../p5
 import type { KT_Font } from "../components/FontImportModal.vue";
 import default_designs_definitions from "../p5/default-designs.js";
 import type { KT_SavedDesign, KT_SavedDesign_LocalStorage } from "../types";
+import { useRouter, useRoute } from "vue-router";
 
 import { useP5Helpers } from "../composables/p5-helpers";
 import FontImportModal from "../components/FontImportModal.vue";
 import default_fonts from "../p5/default-fonts";
 
 const { p5_bind_sketch, p5_bind_data, p5_get_canvas_image } = useP5Helpers();
+const router = useRouter();
+const route = useRoute();
 
 const sketch_id = "working_sketch";
 const sketch_data_setup = reactive<KT_DataSetup_Noise>({
@@ -347,7 +355,16 @@ const default_designs = ref<KT_SavedDesign[]>([]);
 const saved_designs = ref<KT_SavedDesign[]>([]);
 const PREVIEW_DOWNSCALE_FACTOR = 3.5;
 
+function saveDataToUrl() {
+  router.push({ query: { setup: JSON.stringify(sketch_data_setup), draw: JSON.stringify(sketch_data_draw) } });
+}
+
 onMounted(async () => {
+  if (route.query?.setup) {
+    Object.assign(sketch_data_setup, JSON.parse(String(route.query.setup)));
+    Object.assign(sketch_data_draw, JSON.parse(String(route.query.draw)));
+  }
+
   s_reactive = p5_bind_data(s_noise, sketch_data_setup, sketch_data_draw);
   // @ts-expect-error
   s_instance = await p5_bind_sketch(s_reactive, sketch_id);
@@ -358,9 +375,12 @@ onMounted(async () => {
       if (s_instance) {
         s_instance.reset();
       }
+      saveDataToUrl();
     },
     { debounce: 15, maxWait: 20 }
   );
+
+  watchDebounced(sketch_data_draw, () => saveDataToUrl(), { debounce: 15, maxWait: 20 });
 
   watch(
     () => freezeSketch.value,
