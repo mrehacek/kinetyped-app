@@ -32,8 +32,6 @@ declare module '@vue/runtime-core' {
     NSlider: typeof import('naive-ui')['NSlider']
     NSpace: typeof import('naive-ui')['NSpace']
     NSwitch: typeof import('naive-ui')['NSwitch']
-    P5Sketch: typeof import('./src/components/P5Sketch.vue')['default']
-    'P5Sketch.gitignore': typeof import('./src/components/P5Sketch.gitignore.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
   }

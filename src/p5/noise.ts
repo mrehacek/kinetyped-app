@@ -136,8 +136,8 @@ const sketch_data_wrap: KT_SketchDataClosure = (data_setup: KT_DataSetup_Example
     function recalculate_glyph_points() {
       ({ points_all, points_separated } = interpolate_glyphs(
         glyphs,
-        data_setup.interpolationResolution
-        //buf_glyph_vis
+        data_setup.interpolationResolution,
+        buf_glyph_vis
       ));
     }
 
@@ -263,7 +263,7 @@ const sketch_data_wrap: KT_SketchDataClosure = (data_setup: KT_DataSetup_Example
       p: p5,
       glyph: KT_Glyph,
       shapeType: p5.BEGIN_KIND | null = null,
-      ignoreContouring: boolean = false
+      skipContouring: boolean = false
     ) {
       if (shapeType === null) {
         p.beginShape();
@@ -271,21 +271,48 @@ const sketch_data_wrap: KT_SketchDataClosure = (data_setup: KT_DataSetup_Example
         p.beginShape(shapeType);
       }
 
-      for (const v of ignoreContouring ? glyph.all : glyph.shape) {
-        if (shapeType === null && data_draw.drawCurves) {
+      // shape
+      let shape_points = skipContouring ? glyph.all : glyph.shape;
+      let first_v = shape_points[0];
+      let second_v = shape_points[1];
+      let almost_last_v = shape_points[shape_points.length - 2];
+      let last_v = shape_points[shape_points.length - 1];
+
+      if (shapeType === null && data_draw.drawCurves) {
+        // curves
+        //p.curveVertex(almost_last_v.x, almost_last_v.y);
+        //p.curveVertex(last_v.x, last_v.y);
+        for (const v of shape_points) {
           p.curveVertex(v.x, v.y);
-        } else {
+        }
+        //p.curveVertex(first_v.x, first_v.y);
+        //p.curveVertex(second_v.x, second_v.y);
+      } else {
+        // lines
+        for (const v of shape_points) {
           p.vertex(v.x, v.y);
         }
       }
 
-      // contouring is not possible in WebGL, therefore allow to skip it
-      if (glyph.contour.length > 0 && !ignoreContouring) {
+      // contour, not possible in webgl
+      if (glyph.contour.length > 2 && !skipContouring) {
         p.beginContour();
-        for (const v of glyph.contour) {
-          if (shapeType === null && data_draw.drawCurves) {
+        if (shapeType === null && data_draw.drawCurves) {
+          // curves
+          let first_v = glyph.contour[0];
+          let second_v = glyph.contour[1];
+          let almost_last_v = shape_points[glyph.contour.length - 2];
+          let last_v = glyph.contour[glyph.contour.length - 1];
+          //p.curveVertex(almost_last_v.x, almost_last_v.y);
+          //p.curveVertex(last_v.x, last_v.y);
+          for (const v of glyph.contour) {
             p.curveVertex(v.x, v.y);
-          } else {
+          }
+          //p.curveVertex(first_v.x, first_v.y);
+          //p.curveVertex(second_v.x, second_v.y);
+        } else {
+          // lines
+          for (const v of glyph.contour) {
             p.vertex(v.x, v.y);
           }
         }
