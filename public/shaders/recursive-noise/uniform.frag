@@ -40,7 +40,7 @@ void main()
 	// Normalized pixel coordinates (from 0 to 1)
 	vec2 uv = gl_FragCoord.xy/u_resolution.xy;
 	uv=uv/100.0+0.5; // noise scale
-	uv-=u_mouse.xy/u_resolution.xy/0.1; // pan with mouse
+	uv-=u_mouse.xy/u_resolution.xy/22.0; // pan with mouse
 
 	vec3 col = vec3(0.0);
 
@@ -59,7 +59,7 @@ void main()
 	}
 	col.rgb/=32.0;
 	col.rgb=mix(col.rgb,normalize(col.rgb)*2.0,1.0);
-	col.rgb+=.3;
+	col.rgb+=2.0;
 
 	// Output to screen
 	gl_FragColor = vec4(col,1.0);

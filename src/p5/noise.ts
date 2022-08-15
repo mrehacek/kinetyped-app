@@ -1,9 +1,9 @@
-import p5 from "p5";
 import opentype from "opentype.js";
+import p5 from "p5";
 import { interpolate_glyphs } from "../libs/kinetyped";
-import { KT_SketchClosure, KT_SketchDataClosure, KT_DataDraw, KT_DataSetup, KT_P5 } from "../types";
+import { KT_DataDraw, KT_DataSetup, KT_Glyph, KT_P5, KT_SketchClosure, KT_SketchDataClosure } from "../types";
 
-export interface KT_DataSetup_Example extends KT_DataSetup {
+export interface KT_DataSetup_Noise extends KT_DataSetup {
   canvasWidth: number;
   canvasHeight: number;
   useWebGL: boolean;
@@ -16,7 +16,7 @@ export interface KT_DataSetup_Example extends KT_DataSetup {
   backgroundColor: string;
 }
 
-export interface KT_DataDraw_Example extends KT_DataDraw {
+export interface KT_DataDraw_Noise extends KT_DataDraw {
   debugVisualization: boolean;
   debugControlPoints: boolean;
   connectGlyphPointsToMousePos: boolean;
@@ -36,12 +36,12 @@ export interface KT_DataDraw_Example extends KT_DataDraw {
       enabled: boolean;
       decayDistance: number;
       decayFactor: number;
-    }
-  }
+    };
+  };
   webgl: {
     useShader: boolean;
-  }
-};
+  };
+}
 
 export enum KT_DrawingMethod {
   SHAPES = "shapes",
@@ -54,15 +54,15 @@ export interface KT_P5_Example extends KT_P5 {
 }
 
 // @ts-expect-error
-const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Example, data_draw: KT_DataDraw_Example) => {
+const sketch_data_wrap: KT_SketchDataClosure = (data_setup: KT_DataSetup_Example, data_draw: KT_DataDraw_Example) => {
   // @ts-expect-error
-  const sketch : KT_SketchClosure = async (p: KT_P5_Example) => {
+  const sketch: KT_SketchClosure = async (p: KT_P5_Example) => {
     let font: opentype.Font;
     let current_fontPath: string; // remember to avoid reloading when reset() is called
     let glyphs: opentype.Path[];
-    let glyph_points: p5.Vector[];
-    let glyph_points_separated: p5.Vector[][];
-    let max_noise_val : number = 0;
+    let points_all: p5.Vector[];
+    let points_separated: KT_Glyph[];
+    let max_noise_val: number = 0;
 
     let buf_glyph_vis: p5.Graphics;
     let buf_main: p5.Graphics;
@@ -77,7 +77,7 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
       font = await opentype.load(data_setup.fontPath);
       current_fontPath = data_setup.fontPath;
     }
-    
+
     async function generate_glyphs_and_resize() {
       const text_width = font.getAdvanceWidth(data_setup.text, data_setup.fontSize);
       data_setup.canvasWidth = text_width + 250 * p.map(text_width, 0, 500, 0.01, 1);
@@ -104,8 +104,8 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
     p.setup = function () {
       console.log("Sketch setup()");
 
-      glyph_points = [];
-      glyph_points_separated = [];
+      points_all = [];
+      points_separated = [];
 
       p.createCanvas(data_setup.canvasWidth, data_setup.canvasHeight);
       p.colorMode(p.HSB);
@@ -134,10 +134,10 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
     };
 
     function recalculate_glyph_points() {
-      ({ glyph_points, glyph_points_separated } = interpolate_glyphs(
+      ({ points_all, points_separated } = interpolate_glyphs(
         glyphs,
-        data_setup.interpolationResolution,
-        buf_glyph_vis
+        data_setup.interpolationResolution
+        //buf_glyph_vis
       ));
     }
 
@@ -161,7 +161,7 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
     };
 
     p.draw = function () {
-      if (!glyphs || !shader || !glyph_points || !glyph_points_separated) {
+      if (!glyphs || !shader || !points_all || !points_separated) {
         return;
       }
 
@@ -183,7 +183,7 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
       } else {
         // fade frame out
         const c = p.color(data_setup.backgroundColor);
-        c.setAlpha(p.map(p.pow(data_draw.frameFadeoutStrength, 4), 0, 1, 0.01, 1))
+        c.setAlpha(p.map(p.pow(data_draw.frameFadeoutStrength, 4), 0, 1, 0.01, 1));
         p.background(c);
       }
 
@@ -199,15 +199,15 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
       }
 
       if (data_draw.noise.enabled) {
-        displacePointsByNoise(glyph_points);
+        displacePointsByNoise(points_all);
       }
 
       //
       // DRAWING GLYPHS
       //
-      for (const glyph of glyph_points_separated) {
+      for (const glyph of points_separated) {
         if (data_draw.drawingMethod === KT_DrawingMethod.POINTS && data_draw.connectGlyphPointsToMousePos) {
-          for (const v of glyph) {
+          for (const v of glyph.all) {
             const mouseDistance = p.sqrt(p.pow(v.x - p.mouseX, 2) + p.pow(v.y - p.mouseY, 2));
             const c_stroke = p.color(data_draw.shapeColor);
             c_stroke.setAlpha(p.map(mouseDistance, 0, 400, 1, 0));
@@ -215,18 +215,16 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
             p.strokeWeight(data_draw.lineWeight);
             p.line(v.x, v.y, p.mouseX, p.mouseY);
           }
-        }
-        else if (data_draw.drawingMethod === KT_DrawingMethod.SHAPES) {
+        } else if (data_draw.drawingMethod === KT_DrawingMethod.SHAPES) {
           p.fill(data_draw.shapeColor);
           drawShapeFromPoints(p, glyph);
-        }
-        else if (data_draw.drawingMethod === KT_DrawingMethod.WEBGL_SHAPES) {
+        } else if (data_draw.drawingMethod === KT_DrawingMethod.WEBGL_SHAPES) {
           if (data_draw.webgl.useShader && buf_texture) {
             buf_main.texture(buf_texture);
             buf_main.noStroke();
-            drawShapeFromPoints(buf_main, glyph, p.TRIANGLE_STRIP);
+            drawShapeFromPoints(buf_main, glyph, p.TRIANGLE_STRIP, true);
           } else {
-            buf_main.stroke(0,0,0,0);
+            buf_main.stroke(0, 0, 0, 0);
             buf_main.fill(data_draw.shapeColor);
             drawShapeFromPoints(buf_main, glyph, p.TRIANGLE_FAN);
           }
@@ -234,14 +232,13 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
       }
 
       if (data_draw.drawingMethod === KT_DrawingMethod.POINTS) {
-        console.log("Drawing points");
-        for (const g_points of glyph_points_separated) {
-          data_draw.debugVisualization ? drawPointsDebug(p, g_points) : drawPoints(p, g_points);
+        for (const g_points of points_separated) {
+          data_draw.debugVisualization ? drawPointsDebug(p, g_points.all) : drawPoints(p, g_points.all);
         }
       }
 
       if (data_draw.debugVisualization) {
-        for (const v of glyph_points) {
+        for (const v of points_all) {
           buf_glyph_vis.fill(0, 0, 0, 0.5);
           buf_glyph_vis.noStroke();
           buf_glyph_vis.circle(v.x, v.y, 2);
@@ -252,7 +249,7 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
       }
 
       if (data_draw.noise.enabled) {
-        resetNoiseDisplacement(glyph_points);
+        resetNoiseDisplacement(points_all);
       }
 
       if (data_draw.drawingMethod === KT_DrawingMethod.WEBGL_SHAPES) {
@@ -262,44 +259,39 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
       p.pop();
     };
 
-
-    function drawShapeFromPoints(p: p5, points: p5.Vector[], shapeType: p5.BEGIN_KIND | null = null) {
+    function drawShapeFromPoints(
+      p: p5,
+      glyph: KT_Glyph,
+      shapeType: p5.BEGIN_KIND | null = null,
+      ignoreContouring: boolean = false
+    ) {
       if (shapeType === null) {
         p.beginShape();
       } else {
         p.beginShape(shapeType);
       }
-      
-      /* let last_point = null;
-      let first_point = points[0];
-      let noise_multiplier = 2.5; */
-      for (const v of points) {
-        // TODO: attemp to fix jumps when starting to draw another shape
-        // ideas: 1. make a 3D array, separate by M command, and then draw each shape separately
-        // 2. this fix might start working with constant-speed interpolation
-        
-        // if there is a big move between last point and current one, its a jump of the pen
-        /* if (last_point && Math.abs(last_point?.dist(v)) > data_setup.interpolationResolution * noise_multiplier + max_noise_val) {
-          // instead, connect back to the first point of the shape, and restart shapes
-          p.vertex(first_point.x, first_point.y);
-          p.endShape(p.CLOSE);
-          if (shapeType === null) {
-            p.beginShape();
-          } else {
-            p.beginShape(shapeType);
-          }
-          p.fill(0,0,0);
-          first_point = v;
-          last_point = null;
-        } */
 
+      for (const v of ignoreContouring ? glyph.all : glyph.shape) {
         if (shapeType === null && data_draw.drawCurves) {
           p.curveVertex(v.x, v.y);
         } else {
           p.vertex(v.x, v.y);
         }
-        //last_point = v;
       }
+
+      // contouring is not possible in WebGL, therefore allow to skip it
+      if (glyph.contour.length > 0 && !ignoreContouring) {
+        p.beginContour();
+        for (const v of glyph.contour) {
+          if (shapeType === null && data_draw.drawCurves) {
+            p.curveVertex(v.x, v.y);
+          } else {
+            p.vertex(v.x, v.y);
+          }
+        }
+        p.endContour();
+      }
+
       p.endShape(p.CLOSE);
     }
 
@@ -322,10 +314,10 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
       let i = 0;
       for (const v of points) {
         if (first) {
-          p.fill(100,100,100);
+          p.fill(100, 100, 100);
           first = false;
         } else if (i === points.length - 1) {
-          p.fill(0,100,100);
+          p.fill(0, 100, 100);
         } else {
           p.fill(c_fading);
         }
@@ -336,14 +328,6 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
       p.pop();
     }
 
-    function drawFps(p: p5) {
-      p.push();
-      p.textSize(10);
-      p.fill(0, 0, 80, 1);
-      p.text(`FPS: ${p.ceil(p.frameRate())}`, 5, 12);
-      p.pop();
-    }
-
     function displacePointsByNoise(points: p5.Vector[]) {
       let i = 0;
       max_noise_val = 0;
@@ -351,8 +335,10 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
         let mouseChangeX = 1;
         let mouseChangeY = 1;
         if (data_draw.noise.mouse.enabled) {
-          mouseChangeX = (Math.abs(p.mouseX - v.x) ** data_draw.noise.mouse.decayFactor / data_draw.noise.mouse.decayDistance);
-          mouseChangeY = (Math.abs(p.mouseY - v.y) ** data_draw.noise.mouse.decayFactor / data_draw.noise.mouse.decayDistance);
+          mouseChangeX =
+            Math.abs(p.mouseX - v.x) ** data_draw.noise.mouse.decayFactor / data_draw.noise.mouse.decayDistance;
+          mouseChangeY =
+            Math.abs(p.mouseY - v.y) ** data_draw.noise.mouse.decayFactor / data_draw.noise.mouse.decayDistance;
         }
         let animParam = 0;
         if (data_draw.noise.animate) {
@@ -376,7 +362,7 @@ const sketch_data_wrap : KT_SketchDataClosure = (data_setup: KT_DataSetup_Exampl
 
     function resetNoiseDisplacement(points: p5.Vector[]) {
       if (!noises || !noises.get(0)) return;
-      
+
       let i = 0;
       for (const v of points) {
         const n = noises.get(i);

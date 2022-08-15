@@ -15,6 +15,17 @@ export interface KT_P5 extends p5 {
 export type KT_SketchDataClosure = (data_setup: KT_DataSetup, data_draw: KT_DataDraw) => (p: p5) => (p: p5) => p5;
 export type KT_SketchClosure = (p: p5) => (p: p5) => p5;
 
+export type KT_Glyph = {
+  shape: p5.Vector[];
+  contour: p5.Vector[];
+  all: p5.Vector[];
+};
+
+export type Vec2D = {
+  x: number;
+  y: number;
+};
+
 export interface KT_SavedDesign {
   id: string;
   name: string;

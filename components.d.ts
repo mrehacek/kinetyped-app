@@ -23,6 +23,7 @@ declare module '@vue/runtime-core' {
     NLayoutContent: typeof import('naive-ui')['NLayoutContent']
     NLayoutHeader: typeof import('naive-ui')['NLayoutHeader']
     NLayoutSider: typeof import('naive-ui')['NLayoutSider']
+    NMenu: typeof import('naive-ui')['NMenu']
     NModal: typeof import('naive-ui')['NModal']
     NP: typeof import('naive-ui')['NP']
     NRadioButton: typeof import('naive-ui')['NRadioButton']
@@ -31,6 +32,10 @@ declare module '@vue/runtime-core' {
     NSlider: typeof import('naive-ui')['NSlider']
     NSpace: typeof import('naive-ui')['NSpace']
     NSwitch: typeof import('naive-ui')['NSwitch']
+    P5Sketch: typeof import('./src/components/P5Sketch.vue')['default']
+    'P5Sketch.gitignore': typeof import('./src/components/P5Sketch.gitignore.vue')['default']
+    RouterLink: typeof import('vue-router')['RouterLink']
+    RouterView: typeof import('vue-router')['RouterView']
   }
 
 }

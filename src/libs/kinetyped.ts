@@ -1,12 +1,8 @@
-import p5 from "p5";
 import opentype from "opentype.js";
+import p5 from "p5";
+import { KT_Glyph, Vec2D } from "../types";
 
-export type Vec2D = {
-  x: number;
-  y: number;
-};
-
-// TODO: constant rate interpolation for curves 
+// TODO: constant rate interpolation for curves
 
 function interpolate_line(unit_length: number, p0: Vec2D, p1: Vec2D): p5.Vector[] {
   const points = [];
@@ -60,7 +56,7 @@ function interpolate_bezier_quadratic(unit_length: number, p0: Vec2D, p1: Vec2D,
  * @param vis_buf draw control points to this buffer for debug visualization, clears this buffer before drawing
  * @returns uniformly distributed points along the paths of the glyphs
  */
-function interpolate_glyphs(
+function interpolate_glyphs_old(
   glyphs: opentype.Path[],
   interpolation_resolution: number,
   vis_buf: p5.Graphics
@@ -119,6 +115,77 @@ function interpolate_glyphs(
   return { glyph_points_separated, glyph_points };
 }
 
+/**
+ * Interpolate (rasterize) font paths to get points
+ * @param glyphs to interpolate
+ * @param interpolation_resolution eg. if set to 3, every 3 pixels on a curve will be a point
+ * @param vis_buf draw control points to this buffer for debug visualization, clears this buffer before drawing
+ * @returns uniformly distributed points along the paths of the glyphs
+ */
+function interpolate_glyphs(
+  glyphs: opentype.Path[],
+  interpolation_resolution: number
+): {
+  points_all: p5.Vector[];
+  points_separated: KT_Glyph[];
+} {
+  let points_all: p5.Vector[] = [];
+  let points_separated = [];
+  let pos = { x: 0, y: 0 };
+  let contouring = false;
+
+  for (const glyph of glyphs) {
+    let curr_points: p5.Vector[] = [];
+    let curr_glyph: KT_Glyph = { shape: [], contour: [], all: [] };
+
+    let first_cmd = true;
+    for (const cmd of glyph.commands) {
+      switch (cmd.type) {
+        case "M": {
+          if (!contouring && !first_cmd) {
+            curr_glyph.all = curr_glyph.all.concat(curr_points);
+            curr_glyph.shape = curr_points;
+            curr_points = [];
+            contouring = true;
+          } else {
+            curr_glyph.contour.concat(curr_points);
+          }
+          pos = { x: cmd.x, y: cmd.y };
+          first_cmd = false;
+          break;
+        }
+        case "L": {
+          curr_points = curr_points.concat(interpolate_line(interpolation_resolution, pos, cmd));
+          pos = { x: cmd.x, y: cmd.y };
+          break;
+        }
+        case "C": {
+          console.error("Cubic bezier is not supported yet.");
+          pos = { x: cmd.x, y: cmd.y };
+          break;
+        }
+        case "Q": {
+          const v1 = { x: cmd.x1, y: cmd.y1 };
+          curr_points = curr_points.concat(interpolate_bezier_quadratic(interpolation_resolution, pos, v1, cmd));
+          pos = { x: cmd.x, y: cmd.y };
+          break;
+        }
+      }
+    }
+    // all comands of the glyph are processed
+    if (contouring) {
+      curr_glyph.contour = curr_points;
+    } else {
+      curr_glyph.shape = curr_points;
+    }
+    curr_glyph.all = curr_glyph.all.concat(curr_points);
+    contouring = false;
+    points_separated.push(curr_glyph);
+    points_all = points_all.concat(curr_glyph.shape.concat(curr_glyph.contour));
+  }
+  return { points_separated, points_all };
+}
+
 function visualizeVertex(p: p5, pos: Vec2D) {
   p.push();
   p.fill(220, 100, 100);
@@ -127,8 +194,8 @@ function visualizeVertex(p: p5, pos: Vec2D) {
   p.pop();
 }
 
-// TOOD: possibly doesnt work
-function drawShape(p: p5, glyphs: opentype.Path[]) {
+// TOOD: unused, possibly doesnt work
+function drawText(p: p5, glyphs: opentype.Path[]) {
   let pos = { x: 0, y: 0 };
   for (const glyph of glyphs) {
     // letters with holes (eg. o, P) come as a series of M and Z commands
@@ -182,4 +249,10 @@ function drawShape(p: p5, glyphs: opentype.Path[]) {
   }
 }
 
-export { interpolate_line, interpolate_bezier_quadratic, visualizeVertex, interpolate_glyphs };
+export {
+  interpolate_line,
+  interpolate_bezier_quadratic,
+  visualizeVertex,
+  interpolate_glyphs,
+  interpolate_glyphs_fixed,
+};

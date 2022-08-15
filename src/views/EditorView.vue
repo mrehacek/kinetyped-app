@@ -266,9 +266,9 @@
 import { reactive, onMounted, watch, onBeforeUnmount, ref } from "vue";
 import { useLocalStorage, watchDebounced } from "@vueuse/core";
 
-import s_kinetype_example from "../p5/kinetype-example";
-import { KT_DrawingMethod } from "../p5/kinetype-example";
-import type { KT_P5_Example, KT_DataDraw_Example, KT_DataSetup_Example } from "../p5/kinetype-example";
+import s_noise from "../p5/noise";
+import { KT_DrawingMethod } from "../p5/noise";
+import type { KT_P5_Example, KT_DataDraw_Noise, KT_DataSetup_Noise } from "../p5/noise";
 import type { KT_Font } from "../components/FontImportModal.vue";
 import default_designs_definitions from "../p5/default-designs.js";
 import type { KT_SavedDesign, KT_SavedDesign_LocalStorage } from "../types";
@@ -280,7 +280,7 @@ import default_fonts from "../p5/default-fonts";
 const { p5_bind_sketch, p5_bind_data, p5_get_canvas_image } = useP5Helpers();
 
 const sketch_id = "working_sketch";
-const sketch_data_setup = reactive<KT_DataSetup_Example>({
+const sketch_data_setup = reactive<KT_DataSetup_Noise>({
   canvasWidth: 900,
   canvasHeight: 450,
   interpolationResolution: 10,
@@ -292,7 +292,7 @@ const sketch_data_setup = reactive<KT_DataSetup_Example>({
   useWebGL: false,
   backgroundColor: "hsl(0, 0%, 0%)", // because clear only happens on setup
 });
-const sketch_data_draw = reactive<KT_DataDraw_Example>({
+const sketch_data_draw = reactive<KT_DataDraw_Noise>({
   debugVisualization: false,
   debugControlPoints: true,
   connectGlyphPointsToMousePos: false,
@@ -348,7 +348,7 @@ const saved_designs = ref<KT_SavedDesign[]>([]);
 const PREVIEW_DOWNSCALE_FACTOR = 3.5;
 
 onMounted(async () => {
-  s_reactive = p5_bind_data(s_kinetype_example, sketch_data_setup, sketch_data_draw);
+  s_reactive = p5_bind_data(s_noise, sketch_data_setup, sketch_data_draw);
   // @ts-expect-error
   s_instance = await p5_bind_sketch(s_reactive, sketch_id);
 
